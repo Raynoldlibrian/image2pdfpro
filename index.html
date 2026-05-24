@@ -1145,13 +1145,18 @@ document.getElementById("cameraInput").addEventListener("change", function(e) {
 });
 
 // AUTO DOCUMENT BOUNDARY & CORNER DETECTOR
-// Strategy: Sobel edge detection + luminance-based foreground mask + quadrant corner voting
+// Strategy:
+//   1. Sample border pixels → estimate background color (median)
+//   2. Build foreground mask: pixels significantly different from background
+//   3. Morphological erosion to remove noise
+//   4. Collect all foreground pixels as "hull candidates"
+//   5. Find 4 extreme corners via rotated-rect scoring on the hull
+//   6. Validate and return
 function autoDetectPaperCorners(img) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
-  // Use 320px wide for good accuracy vs speed balance
-  const w = Math.min(320, img.width);
+  const w = Math.min(300, img.width);
   const h = Math.round((img.height * w) / img.width);
   canvas.width = w;
   canvas.height = h;
@@ -1162,121 +1167,120 @@ function autoDetectPaperCorners(img) {
     const d = imgData.data;
     const total = w * h;
 
-    // === Step 1: Build grayscale + compute luminance stats ===
-    const gray = new Float32Array(total);
-    let lumSum = 0;
+    // ── Step 1: Grayscale ──────────────────────────────────────────────────
+    const gray = new Uint8Array(total);
     for (let i = 0; i < total; i++) {
-      const v = 0.299 * d[i*4] + 0.587 * d[i*4+1] + 0.114 * d[i*4+2];
-      gray[i] = v;
-      lumSum += v;
-    }
-    const lumMean = lumSum / total;
-
-    // Compute variance for adaptive thresholding
-    let lumVar = 0;
-    for (let i = 0; i < total; i++) lumVar += (gray[i] - lumMean) ** 2;
-    lumVar /= total;
-    const lumStd = Math.sqrt(lumVar);
-
-    // === Step 2: Sobel edge map ===
-    const edgeMap = new Float32Array(total);
-    let maxGrad = 0;
-    for (let y = 1; y < h - 1; y++) {
-      for (let x = 1; x < w - 1; x++) {
-        const g = (dx, dy) => gray[(y+dy)*w + (x+dx)];
-        const gx = (g(1,-1) + 2*g(1,0) + g(1,1)) - (g(-1,-1) + 2*g(-1,0) + g(-1,1));
-        const gy = (g(-1,1) + 2*g(0,1) + g(1,1)) - (g(-1,-1) + 2*g(0,-1) + g(1,-1));
-        const mag = Math.sqrt(gx*gx + gy*gy);
-        edgeMap[y*w + x] = mag;
-        if (mag > maxGrad) maxGrad = mag;
-      }
+      gray[i] = Math.round(0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2]);
     }
 
-    // Adaptive edge threshold: 18% of max, but never below 20
-    const edgeThresh = Math.max(20, maxGrad * 0.18);
-
-    // === Step 3: Foreground mask — pixels that differ significantly from background ===
-    // Background is assumed to be the border strip of the image
-    // Collect border pixel luminance values and compute median
-    const borderLums = [];
-    const BSTRIP = Math.round(Math.min(w, h) * 0.06);
+    // ── Step 2: Estimate background from image border strip ─────────────────
+    // Sample a 5% strip around all 4 edges
+    const STRIP = Math.max(3, Math.round(Math.min(w,h) * 0.05));
+    const bgR = [], bgG = [], bgB = [];
     for (let x = 0; x < w; x++) {
-      borderLums.push(gray[x], gray[(h-1)*w + x]);
+      for (let s = 0; s < STRIP; s++) {
+        const push = (idx) => {
+          bgR.push(d[idx*4]); bgG.push(d[idx*4+1]); bgB.push(d[idx*4+2]);
+        };
+        push(s * w + x);           // top
+        push((h-1-s) * w + x);     // bottom
+      }
     }
-    for (let y = BSTRIP; y < h - BSTRIP; y++) {
-      borderLums.push(gray[y*w], gray[y*w + w-1]);
+    for (let y = STRIP; y < h - STRIP; y++) {
+      for (let s = 0; s < STRIP; s++) {
+        const push = (idx) => {
+          bgR.push(d[idx*4]); bgG.push(d[idx*4+1]); bgB.push(d[idx*4+2]);
+        };
+        push(y * w + s);            // left
+        push(y * w + (w-1-s));      // right
+      }
     }
-    borderLums.sort((a,b) => a-b);
-    const bgLum = borderLums[Math.floor(borderLums.length / 2)];
+    const median = arr => { arr.sort((a,b)=>a-b); return arr[Math.floor(arr.length/2)]; };
+    const bgr = median(bgR), bgg = median(bgG), bgb = median(bgB);
 
-    // Foreground = pixels whose luminance differs from bg by more than 0.6*std
-    const fgThresh = Math.max(15, lumStd * 0.6);
-    const isFG = (idx) => Math.abs(gray[idx] - bgLum) > fgThresh;
+    // ── Step 3: Foreground mask ─────────────────────────────────────────────
+    // Pixel is foreground if its color distance from background > threshold
+    // Use adaptive threshold: max(25, 15% of dynamic range)
+    let minL = 255, maxL = 0;
+    for (let i = 0; i < total; i++) { if (gray[i] < minL) minL = gray[i]; if (gray[i] > maxL) maxL = gray[i]; }
+    const dynRange = maxL - minL;
+    const colorThresh = Math.max(22, dynRange * 0.14);
 
-    // === Step 4: Collect scored edge points (edge + foreground bonus) ===
-    // Exclude a thin image border strip from candidates
-    const EXCL = Math.round(Math.min(w, h) * 0.04);
-    const candidates = [];
-    for (let y = EXCL; y < h - EXCL; y++) {
-      for (let x = EXCL; x < w - EXCL; x++) {
-        const idx = y*w + x;
-        if (edgeMap[idx] > edgeThresh) {
-          const fgBonus = isFG(idx) ? 1.4 : 1.0;
-          candidates.push({
-            x: x / w,
-            y: y / h,
-            score: (edgeMap[idx] / maxGrad) * fgBonus
-          });
-        }
+    const fg = new Uint8Array(total); // 1 = foreground
+    for (let i = 0; i < total; i++) {
+      const dr = d[i*4]   - bgr;
+      const dg = d[i*4+1] - bgg;
+      const db = d[i*4+2] - bgb;
+      const dist = Math.sqrt(dr*dr + dg*dg + db*db);
+      fg[i] = dist > colorThresh ? 1 : 0;
+    }
+
+    // ── Step 4: Simple morphological erosion (3×3) to kill isolated noise ───
+    const fgClean = new Uint8Array(total);
+    for (let y = 1; y < h-1; y++) {
+      for (let x = 1; x < w-1; x++) {
+        const i = y*w+x;
+        if (!fg[i]) continue;
+        // Count foreground neighbours in 3×3
+        let cnt = 0;
+        for (let dy=-1; dy<=1; dy++) for (let dx=-1; dx<=1; dx++) cnt += fg[(y+dy)*w+(x+dx)];
+        fgClean[i] = cnt >= 5 ? 1 : 0; // require ≥5/9 neighbours
       }
     }
 
-    if (candidates.length < 60) return null;
+    // ── Step 5: Collect foreground hull candidates ─────────────────────────
+    // Exclude a 3% hard border from candidates
+    const EXCL = Math.max(2, Math.round(Math.min(w,h) * 0.03));
+    const pts = [];
+    for (let y = EXCL; y < h-EXCL; y++) {
+      for (let x = EXCL; x < w-EXCL; x++) {
+        if (fgClean[y*w+x]) pts.push({ x: x/w, y: y/h });
+      }
+    }
 
-    // === Step 5: Per-quadrant corner voting with overlap zone ===
-    // Quadrants have 10% overlap so objects near center aren't missed
-    const OVL = 0.10;
-    const zones = [
-      { name:'tl', xMax: 0.5+OVL, yMax: 0.5+OVL, fn: p => -(p.x + p.y) },
-      { name:'tr', xMin: 0.5-OVL, yMax: 0.5+OVL, fn: p =>  (p.x - p.y) },
-      { name:'br', xMin: 0.5-OVL, yMin: 0.5-OVL, fn: p =>  (p.x + p.y) },
-      { name:'bl', xMax: 0.5+OVL, yMin: 0.5-OVL, fn: p => -(p.x - p.y) },
+    // Need a meaningful blob to work with
+    if (pts.length < 100) return null;
+
+    // ── Step 6: Find 4 extreme corners via quadrant-aware rotated scoring ───
+    // For each corner we search only within its quadrant + 15% overlap
+    // Score = purely geometric extremeness on the hull points
+    const OV = 0.15;
+    const cornerDefs = [
+      { name:'tl', xMax:0.5+OV, yMax:0.5+OV, score: p => -(p.x + p.y) },
+      { name:'tr', xMin:0.5-OV, yMax:0.5+OV, score: p =>  (p.x - p.y) },
+      { name:'br', xMin:0.5-OV, yMin:0.5-OV, score: p =>  (p.x + p.y) },
+      { name:'bl', xMax:0.5+OV, yMin:0.5-OV, score: p => -(p.x - p.y) },
     ];
 
-    const corners = {};
-    for (const z of zones) {
+    const found = {};
+    for (const def of cornerDefs) {
       let best = null, bestS = -Infinity;
-      for (const p of candidates) {
-        if (z.xMin !== undefined && p.x < z.xMin) continue;
-        if (z.xMax !== undefined && p.x > z.xMax) continue;
-        if (z.yMin !== undefined && p.y < z.yMin) continue;
-        if (z.yMax !== undefined && p.y > z.yMax) continue;
-        // Combined score: 75% geometric extremeness + 25% edge strength
-        const s = z.fn(p) * 0.75 + p.score * 0.25;
+      for (const p of pts) {
+        if (def.xMin !== undefined && p.x < def.xMin) continue;
+        if (def.xMax !== undefined && p.x > def.xMax) continue;
+        if (def.yMin !== undefined && p.y < def.yMin) continue;
+        if (def.yMax !== undefined && p.y > def.yMax) continue;
+        const s = def.score(p);
         if (s > bestS) { bestS = s; best = p; }
       }
-      corners[z.name] = best;
+      found[def.name] = best;
     }
 
-    const { tl, tr, br, bl } = corners;
+    const { tl, tr, br, bl } = found;
     if (!tl || !tr || !br || !bl) return null;
 
-    // === Step 6: Sanity check — quad must be reasonably large ===
-    const quadW = Math.abs(tr.x - tl.x);
-    const quadH = Math.abs(bl.y - tl.y);
-    if (quadW < 0.12 || quadH < 0.12) return null;
+    // ── Step 7: Sanity — quad must cover at least 15% of width and height ──
+    const qW = Math.abs(tr.x - tl.x);
+    const qH = Math.abs(bl.y - tl.y);
+    if (qW < 0.15 || qH < 0.15) return null;
 
-    // === Step 7: Small outward safety padding ===
-    const pad = (p, dx, dy) => ({
-      x: Math.max(0.01, Math.min(0.99, p.x + dx)),
-      y: Math.max(0.01, Math.min(0.99, p.y + dy))
-    });
-
+    // ── Step 8: Small inward clamp + minimal padding ───────────────────────
+    const clamp = (v, mn, mx) => Math.max(mn, Math.min(mx, v));
     return [
-      pad(tl, -0.01, -0.01),
-      pad(tr,  0.01, -0.01),
-      pad(br,  0.01,  0.01),
-      pad(bl, -0.01,  0.01)
+      { x: clamp(tl.x - 0.008, 0.01, 0.99), y: clamp(tl.y - 0.008, 0.01, 0.99) },
+      { x: clamp(tr.x + 0.008, 0.01, 0.99), y: clamp(tr.y - 0.008, 0.01, 0.99) },
+      { x: clamp(br.x + 0.008, 0.01, 0.99), y: clamp(br.y + 0.008, 0.01, 0.99) },
+      { x: clamp(bl.x - 0.008, 0.01, 0.99), y: clamp(bl.y + 0.008, 0.01, 0.99) },
     ];
   } catch (err) {
     console.error("Auto corner snap failed:", err);
@@ -1698,6 +1702,9 @@ function resetCropToFull() {
 }
 
 function resetCropToAuto() {
+  if (!scanImageElement) return;
+  
+  // Show debug overlay briefly so user can see what's detected
   const autoCorners = autoDetectPaperCorners(scanImageElement);
   if (autoCorners) {
     scanCorners = autoCorners;
@@ -1711,7 +1718,7 @@ function resetCropToAuto() {
       { x: 0.15, y: 0.85 }
     ];
     drawScanner();
-    showToast("Gagal mendeteksi kertas, disetel ke batas standar", "info");
+    showToast("Objek tidak terdeteksi jelas, sesuaikan manual", "info");
   }
 }
 
