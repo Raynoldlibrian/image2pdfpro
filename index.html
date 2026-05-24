@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Image to PDF Pro - Document Scanner</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4f46e5">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface2: #f1f5f9;
+  --surface3: #e2e8f0;
+  --border: #cbd5e1;
+  --border2: #94a3b8;
+  --text: #0f172a;
+  --text2: #475569;
+  --text3: #64748b;
+  --accent: #4f46e5;
+  --accent-dark: #3730a3;
+  --accent-light: #e0e7ff;
+  --accent-text: #3730a3;
+  --danger: #ef4444;
+  --danger-light: #fef2f2;
+  --danger-border: #fca5a5;
+  --success: #10b981;
+  --success-light: #ecfdf5;
+  --success-border: #a7f3d0;
+  --warning: #f59e0b;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+  --shadow-accent: 0 10px 20px -3px rgba(79, 70, 229, 0.25);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-blur: blur(12px);
+}
+
+[data-theme="dark"] {
+  --bg: #090d16;
+  --surface: #111827;
+  --surface2: #1f2937;
+  --surface3: #374151;
+  --border: #1f2937;
+  --border2: #4b5563;
+  --text: #f9fafb;
+  --text2: #d1d5db;
+  --text3: #9ca3af;
+  --accent: #6366f1;
+  --accent-dark: #4f46e5;
+  --accent-light: #1e1b4b;
+  --accent-text: #c7d2fe;
+  --danger: #f87171;
+  --danger-light: #2d1616;
+  --danger-border: #7f1d1d;
+  --success: #34d399;
+  --success-light: #062016;
+  --success-border: #064e3b;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  --shadow-accent: 0 10px 20px -3px rgba(99, 102, 241, 0.25);
+  --glass-bg: rgba(17, 24, 39, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.05);
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background-color 0.3s, color 0.3s;
+  overflow-x: hidden;
+}
+
+.app {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 5rem;
+}
+
+/* TOPBAR */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.brand-icon {
+  width: 46px; height: 46px;
+  background: linear-gradient(135deg, var(--accent), #a5b4fc);
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-accent);
+  flex-shrink: 0;
+  transition: transform 0.3s;
+}
+.brand:hover .brand-icon { transform: rotate(-8deg) scale(1.05); }
+.brand-icon svg { width: 22px; height: 22px; fill: white; }
+.brand-name { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.2; letter-spacing: -0.02em; }
+.brand-sub { font-size: 12px; color: var(--text3); margin-top: 1px; }
+
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+.icon-btn {
+  width: 40px; height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text2);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow);
+}
+.icon-btn:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+.icon-btn:active { transform: scale(0.95); }
+.icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+
+.refresh-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px; height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+  color: var(--text2);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.refresh-btn:hover { background: var(--danger-light); border-color: var(--danger-border); color: var(--danger); }
+.refresh-btn:active { transform: scale(0.97); }
+.refresh-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.2; transition: transform 0.5s; }
+.refresh-btn:hover svg { transform: rotate(-180deg); }
+
+/* CARD (Glassmorphism inspired) */
+.card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 1.25rem;
+  transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+/* UPLOAD ZONE */
+.upload-zone {
+  border: 2.5px dashed var(--border2);
+  border-radius: var(--radius-md);
+  padding: 2.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  background: var(--surface2);
+  position: relative;
+  overflow: hidden;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+.upload-icon-ring {
+  width: 58px; height: 58px;
+  background: var(--accent-light);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  border: 2px solid var(--accent);
+  transition: transform 0.3s;
+}
+.upload-zone:hover .upload-icon-ring { transform: translateY(-4px) scale(1.05); }
+.upload-icon-ring svg { width: 26px; height: 26px; stroke: var(--accent); fill: none; stroke-width: 2; }
+.upload-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.upload-hint { font-size: 12px; color: var(--text3); }
+.upload-hint span { color: var(--accent); font-weight: 600; }
+#imageInput, #cameraInput { display: none; }
+
+/* ACTION BUTTONS GRID IN UPLOAD */
+.upload-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 420px;
+  margin: 1.25rem auto 0;
+}
+.action-card-btn {
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: all 0.2s;
+}
+.action-card-btn:hover {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.action-card-btn:active { transform: scale(0.97); }
+.action-card-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+
+/* SETTINGS GRID */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 1.25rem;
+}
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+.field-label {
+  font-size: 11px; font-weight: 700;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+select, input[type="text"] {
+  width: 100%; padding: 10px 14px;
+  font-size: 13px; font-family: 'DM Sans', sans-serif;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  color: var(--text);
+  outline: none;
+  transition: all 0.2s;
+  appearance: none;
+}
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+select:focus, input[type="text"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  background: var(--surface);
+}
+
+/* QUALITY SLIDER */
+.quality-row { margin-top: 1.5rem; }
+.quality-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.quality-label { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
+.quality-badges { display: flex; align-items: center; gap: 8px; }
+.quality-value {
+  font-size: 13px; font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 3px 12px;
+  border-radius: 20px;
+  min-width: 52px;
+  text-align: center;
+}
+.quality-desc { font-size: 11px; color: var(--text3); font-weight: 500; }
+.slider-wrap { position: relative; }
+input[type="range"] {
+  width: 100%; height: 6px;
+  appearance: none;
+  background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--pct, 75%), var(--border) var(--pct, 75%), var(--border) 100%);
+  border-radius: 99px;
+  outline: none;
+  cursor: pointer;
+  border: none;
+  transition: background 0.1s;
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px; height: 20px;
+  background: var(--accent);
+  border-radius: 50%;
+  border: 4px solid var(--surface);
+  box-shadow: 0 0 0 2px var(--accent);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.slider-ticks { display: flex; justify-content: space-between; margin-top: 6px; }
+.slider-ticks span { font-size: 10px; color: var(--text3); font-weight: 500; }
+
+/* PRESET BUTTONS */
+.preset-row { margin-top: 1.5rem; }
+.preset-label { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; display: block; }
+.preset-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.preset-btn {
+  padding: 10px 4px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  font-size: 11px; font-weight: 700;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text2);
+  text-align: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  -webkit-tap-highlight-color: transparent;
+}
+.preset-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.preset-btn:active { transform: scale(0.96); }
+.preset-btn.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+.preset-btn .preset-name { font-size: 11px; font-weight: 700; }
+.preset-btn .preset-quality { font-size: 10px; font-weight: 400; color: var(--text3); }
+.preset-btn.active .preset-quality { color: var(--accent); opacity: 0.8; }
+
+/* DIVIDER */
+.divider { height: 1.5px; background: var(--border); margin: 1.5rem 0; opacity: 0.5; }
+
+/* SECTION HEADER */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.section-title { font-size: 14px; font-weight: 700; color: var(--text2); display: flex; align-items: center; gap: 8px; letter-spacing: -0.01em; }
+.section-title .count-pill {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 11px; font-weight: 700;
+  padding: 1px 9px;
+  border-radius: 20px;
+}
+.clear-btn {
+  font-size: 12px; font-weight: 600;
+  color: var(--text3);
+  background: none; border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+}
+.clear-btn:hover { background: var(--danger-light); color: var(--danger); }
+
+/* PREVIEW GRID */
+#previewSection { display: none; }
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+.preview-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex; flex-direction: column;
+  position: relative;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.preview-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+.preview-img-box {
+  width: 100%; height: 130px;
+  overflow: hidden;
+  background: var(--surface2);
+  flex-shrink: 0;
+  position: relative;
+}
+.preview-img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  pointer-events: none;
+}
+
+/* Touch Mobile optimized handles */
+.drag-handle {
+  position: absolute; top: 8px; right: 8px;
+  width: 36px; height: 36px;
+  background: rgba(0,0,0,0.65);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: grab; touch-action: none; z-index: 2;
+  transition: background-color 0.2s;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.drag-handle:hover { background: rgba(0,0,0,0.85); }
+.drag-handle svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2.5; pointer-events: none; }
+.drag-handle:active { cursor: grabbing; }
+
+.scan-badge-btn {
+  position: absolute; top: 8px; left: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  font-size: 11px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  display: flex; align-items: center; gap: 4px;
+  transition: transform 0.2s, background-color 0.2s;
+}
+.scan-badge-btn:hover { background-color: var(--accent-dark); transform: scale(1.05); }
+.scan-badge-btn:active { transform: scale(0.95); }
+.scan-badge-btn svg { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 3; }
+
+.preview-footer {
+  padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 6px;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+  flex-shrink: 0;
+  min-height: 72px;
+  justify-content: space-between;
+}
+.footer-meta-top {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%;
+}
+.num-badge {
+  font-size: 10px; font-weight: 800;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 2px 7px; border-radius: 20px; flex-shrink: 0;
+  white-space: nowrap;
+}
+.file-meta-name {
+  font-size: 10px; font-weight: 700; color: var(--text2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 90px;
+}
+.file-meta-dims {
+  font-size: 9px; font-weight: 500; color: var(--text3);
+  text-align: right;
+}
+
+.img-actions { display: flex; gap: 4px; width: 100%; }
+.ic-btn {
+  flex: 1; height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text2);
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  gap: 4px; font-size: 10px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+}
+.ic-btn:hover { background: var(--surface3); border-color: var(--border2); }
+.ic-btn:active { transform: scale(0.95); }
+.ic-btn.del:hover { background: var(--danger-light); color: var(--danger); border-color: var(--danger-border); }
+.ic-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.2; pointer-events: none; }
+.sortable-ghost { opacity: 0.25; }
+.sortable-drag { box-shadow: var(--shadow-md); transform: rotate(2deg) scale(1.04); }
+
+/* PROGRESS */
+.progress-wrap {
+  display: none;
+  margin-top: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+}
+.progress-wrap.show { display: block; }
+.progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.progress-label { font-size: 13px; font-weight: 600; color: var(--text); }
+.progress-pct { font-size: 13px; font-weight: 800; color: var(--accent); }
+.progress-track {
+  width: 100%; height: 8px;
+  background: var(--surface3);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--accent), #818cf8);
+  border-radius: 99px;
+  transition: width 0.1s ease;
+}
+.progress-detail { font-size: 11px; color: var(--text3); margin-top: 7px; font-weight: 500; }
+
+/* CONVERT BUTTON */
+.convert-btn {
+  width: 100%; padding: 15px;
+  margin-top: 1.25rem;
+  font-size: 15px; font-weight: 700;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--accent);
+  color: white; border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-accent);
+  letter-spacing: 0.02em;
+}
+.convert-btn:hover { background: var(--accent-dark); }
+.convert-btn:active { transform: scale(0.99); }
+.convert-btn:disabled {
+  background: var(--surface3); color: var(--text3);
+  box-shadow: none; cursor: not-allowed; transform: none;
+}
+.convert-btn svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2.2; }
+.convert-btn:disabled svg { stroke: var(--text3); }
+.spinner {
+  width: 18px; height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: none;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* TOAST (Modern design) */
+.toast {
+  position: fixed; bottom: 32px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: 13px; font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 9999; pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.15);
+  display: flex; align-items: center; gap: 10px;
+}
+.toast svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; flex-shrink: 0; }
+.toast.success { background: #064e3b; color: #d1fae5; border: 1.5px solid #059669; }
+.toast.error { background: #7f1d1d; color: #fee2e2; border: 1.5px solid #dc2626; }
+.toast.info { background: var(--surface3); color: var(--text); border: 1.5px solid var(--border); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* INTERACTIVE SCANNER MODAL (CamScanner style) */
+.scan-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.95);
+  z-index: 1000; align-items: center; justify-content: center;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.25s ease-out;
+  padding: 1rem;
+}
+.scan-overlay.show { display: flex; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.scan-editor-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  max-width: 680px; width: 100%;
+  max-height: 92vh;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes slideUp { from { transform: translateY(40px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+.scan-editor-header {
+  padding: 14px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1.5px solid var(--surface2);
+  background: var(--surface);
+}
+.scan-editor-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.scan-editor-title svg { width: 18px; height: 18px; stroke: var(--accent); fill: none; stroke-width: 2.2; }
+.close-scan-btn {
+  background: none; border: none; font-size: 20px; font-weight: 600; color: var(--text3);
+  cursor: pointer; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.close-scan-btn:hover { background: var(--surface2); color: var(--text); }
+
+/* SCANNER CANVAS AREA */
+.scan-canvas-wrapper {
+  flex: 1;
+  background: #0b0f19;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  min-height: 280px;
+  max-height: 52vh;
+  overflow: hidden;
+  touch-action: none; /* Prevents mobile browser scrolling while dragging crop handles */
+}
+#scanCanvas {
+  max-width: 100%; max-height: 100%;
+  display: block; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+/* MAGNIFYING LOUPE BUBBLE */
+.magnifying-loupe {
+  display: none; position: absolute;
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  border: 3.5px solid white;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  background: #000;
+  z-index: 1010;
+  pointer-events: none;
+  overflow: hidden;
+}
+.magnifying-loupe::after {
+  content: ''; position: absolute; inset: 0;
+  border: 1.5px solid #22c55e; border-radius: 50%;
+}
+/* Crosshair inside loupe */
+.loupe-crosshair {
+  position: absolute; top: 50%; left: 50%;
+  width: 16px; height: 16px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.loupe-crosshair::before, .loupe-crosshair::after {
+  content: ''; position: absolute; background-color: #22c55e;
+}
+.loupe-crosshair::before { left: 0; top: 7px; width: 16px; height: 2px; }
+.loupe-crosshair::after { left: 7px; top: 0; width: 2px; height: 16px; }
+#loupeCanvas { width: 100%; height: 100%; }
+
+/* SCANNER EDITOR FOOTER */
+.scan-editor-footer {
+  padding: 1.25rem 1.5rem;
+  background: var(--surface);
+  border-top: 1.5px solid var(--surface2);
+}
+.scan-controls-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;
+}
+.scan-tools-group { display: flex; align-items: center; gap: 8px; }
+.scan-tool-btn {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: 11px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.scan-tool-btn:hover { background: var(--surface3); color: var(--text); }
+.scan-tool-btn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+
+/* SCAN FILTERS SELECTION */
+.filter-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.filter-label { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: 0.04em; text-transform: uppercase; }
+.filter-options { display: flex; gap: 6px; }
+.filter-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: 11px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: all 0.15s;
+}
+.filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+.filter-btn.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+/* SCAN MODAL ACTIONS */
+.scan-actions-row {
+  display: grid; grid-template-columns: 1fr 2fr; gap: 10px;
+}
+.scan-btn-cancel {
+  padding: 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text2);
+  font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: all 0.15s;
+}
+.scan-btn-cancel:hover { background: var(--surface3); }
+.scan-btn-confirm {
+  padding: 12px; border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent); color: white;
+  font-size: 13px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: var(--shadow-accent);
+}
+.scan-btn-confirm:hover { background: var(--accent-dark); }
+.scan-btn-confirm svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+
+/* REFRESH MODAL */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100; align-items: center; justify-content: center;
+  backdrop-filter: blur(5px);
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 1.75rem;
+  max-width: 340px; width: 90%;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal-icon {
+  width: 52px; height: 52px;
+  background: var(--danger-light);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+}
+.modal-icon svg { width: 24px; height: 24px; stroke: var(--danger); fill: none; stroke-width: 2.2; }
+.modal-title { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+.modal-desc { font-size: 13px; color: var(--text2); text-align: center; line-height: 1.6; margin-bottom: 1.5rem; }
+.modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.modal-cancel {
+  padding: 10px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text2);
+  font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: all 0.15s;
+}
+.modal-cancel:hover { background: var(--surface3); }
+.modal-confirm {
+  padding: 10px; border-radius: var(--radius-sm);
+  border: none;
+  background: var(--danger); color: white;
+  font-size: 13px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: all 0.15s;
+}
+.modal-confirm:hover { opacity: 0.9; }
+
+/* TRANSITIONS */
+* { transition: background-color 0.25s, border-color 0.25s, color 0.2s; }
+.preview-img, input[type="range"], .progress-bar, #scanCanvas, #loupeCanvas { transition: none !important; }
+
+@media (max-width: 600px) {
+  .settings-grid { grid-template-columns: 1fr; }
+  .preview-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  .refresh-btn span { display: none; }
+  .refresh-btn { padding: 0 12px; }
+  .preset-btns { grid-template-columns: 1fr 1fr; gap: 6px; }
+}
+
+/* FOOTER */
+.app-footer {
+  text-align: center;
+  padding: 2.5rem 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.footer-divider {
+  width: 60px; height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  border-radius: 99px;
+  margin-bottom: 6px;
+  opacity: 0.4;
+}
+.footer-text {
+  font-size: 12px;
+  color: var(--text3);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+.footer-text span {
+  color: var(--accent);
+  font-weight: 700;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" style="stroke:white;fill:none;stroke-width:2.2;stroke-linecap:round"/><polyline points="14 2 14 8 20 8" style="fill:none;stroke:white;stroke-width:2.2;stroke-linejoin:round"/><line x1="16" y1="13" x2="8" y2="13" style="stroke:rgba(255,255,255,0.7);stroke-width:2"/><line x1="16" y1="17" x2="8" y2="17" style="stroke:rgba(255,255,255,0.7);stroke-width:2"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">Image to PDF Pro</div>
+        <div class="brand-sub">Premium Document Scanner &amp; PWA Creator</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="refresh-btn" onclick="showRefreshModal()" title="Reset semua pengaturan dan gambar">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+        <span>Reset</span>
+      </button>
+      <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="Beralih Mode Gelap/Terang">
+        <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN CARD -->
+  <div class="card">
+
+    <!-- UPLOAD ZONE -->
+    <div class="upload-zone" id="dropZone" onclick="document.getElementById('imageInput').click()">
+      <div class="upload-icon-ring">
+        <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+      </div>
+      <div class="upload-title">Seret gambar ke sini atau klik untuk menjelajah</div>
+      <div class="upload-hint">Format didukung: <span>JPG, PNG, WEBP, GIF</span> &nbsp;&mdash;&nbsp; Bisa pilih banyak berkas</div>
+      
+      <!-- Native camera capture trigger and gallery buttons -->
+      <div class="upload-actions-grid" onclick="event.stopPropagation()">
+        <button class="action-card-btn" onclick="document.getElementById('imageInput').click()">
+          <svg viewBox="0 0 24 24"><path d="M2 17V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12A2 2 0 0 1 20 19H4a2 2 0 0 1-2-2z"/><circle cx="12" cy="11" r="3"/><path d="m22 7-5 4V7z"/></svg>
+          📁 Pilih Galeri
+        </button>
+        <button class="action-card-btn" onclick="document.getElementById('cameraInput').click()">
+          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          📸 Ambil Foto Kamera
+        </button>
+      </div>
+    </div>
+    <input type="file" id="imageInput" multiple accept="image/*">
+    <!-- Camera-only capture input -->
+    <input type="file" id="cameraInput" accept="image/*" capture="environment">
+
+    <div class="divider"></div>
+
+    <!-- SETTINGS GRID -->
+    <div class="settings-grid">
+      <div class="field-group">
+        <label class="field-label">Ukuran Kertas</label>
+        <select id="paperSize">
+          <option value="original" selected>Ukuran Asli Gambar</option>
+          <option value="a4">A4 (210 × 297 mm)</option>
+          <option value="f4">F4 (210 × 330 mm)</option>
+          <option value="letter">Letter (216 × 279 mm)</option>
+          <option value="legal">Legal (216 × 356 mm)</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Orientasi Kertas</label>
+        <select id="paperOrientation">
+          <option value="auto" selected>Otomatis (Sesuai Gambar)</option>
+          <option value="portrait">Potret (Tegak)</option>
+          <option value="landscape">Lanskap (Tidur)</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Margin Halaman</label>
+        <select id="pageMargin">
+          <option value="none" selected>Tanpa Margin (0mm)</option>
+          <option value="thin">Tipis (5mm)</option>
+          <option value="normal">Normal (12mm)</option>
+          <option value="thick">Lebar (20mm)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- OUTPUT FILENAME CONTAINER -->
+    <div class="field-group" style="margin-top:1.25rem;">
+      <label class="field-label">Nama Berkas PDF Output</label>
+      <input type="text" id="fileName" placeholder="nama-dokumen-saya">
+    </div>
+
+    <!-- PRESET COMPRESSION -->
+    <div class="preset-row">
+      <span class="preset-label">Preset Kompresi Kualitas</span>
+      <div class="preset-btns">
+        <button class="preset-btn" data-quality="30" onclick="applyPreset(this, 30)">
+          <span class="preset-name">Draft (Cepat)</span>
+          <span class="preset-quality">30% · Berkas Terkecil</span>
+        </button>
+        <button class="preset-btn" data-quality="60" onclick="applyPreset(this, 60)">
+          <span class="preset-name">Sedang</span>
+          <span class="preset-quality">60% · Seimbang</span>
+        </button>
+        <button class="preset-btn active" data-quality="80" onclick="applyPreset(this, 80)">
+          <span class="preset-name">Bagus</span>
+          <span class="preset-quality">80% · Sangat Tajam</span>
+        </button>
+        <button class="preset-btn" data-quality="100" onclick="applyPreset(this, 100)">
+          <span class="preset-name">Cetak (Maks)</span>
+          <span class="preset-quality">100% · Tanpa Kompresi</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- QUALITY SLIDER -->
+    <div class="quality-row">
+      <div class="quality-header">
+        <span class="quality-label">Atur Presisi Kualitas</span>
+        <div class="quality-badges">
+          <span class="quality-desc" id="qualityDesc">Kualitas Bagus</span>
+          <span class="quality-value" id="qualityVal">80%</span>
+        </div>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" id="qualitySlider" min="20" max="100" value="80" step="5">
+      </div>
+      <div class="slider-ticks">
+        <span>Hemat Ruang</span>
+        <span>Seimbang</span>
+        <span>Kualitas Cetak</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PREVIEW SECTION -->
+  <div id="previewSection">
+    <div class="card" style="padding:1.25rem">
+      <div class="section-header">
+        <div class="section-title">
+          Daftar Gambar Dokumen
+          <span class="count-pill" id="countPill">0</span>
+        </div>
+        <button class="clear-btn" onclick="clearImages()">Hapus Semua</button>
+      </div>
+      <div class="preview-grid" id="previewContainer"></div>
+    </div>
+  </div>
+
+  <!-- PROGRESS BAR -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-header">
+      <span class="progress-label" id="progressLabel">Memproses dokumen...</span>
+      <span class="progress-pct" id="progressPct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="progress-detail" id="progressDetail">Menyiapkan konversi...</div>
+  </div>
+
+  <!-- CONVERT BUTTON -->
+  <button class="convert-btn" id="convertBtn" onclick="convertToPDF()">
+    <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    <span id="btnText">Simpan &amp; Konversi ke PDF</span>
+    <div class="spinner" id="spinner"></div>
+  </button>
+
+</div>
+
+<!-- INTERACTIVE DOCUMENT SCANNER MODAL (CamScanner style) -->
+<div class="scan-overlay" id="scannerModal">
+  <div class="scan-editor-container">
+    
+    <!-- Header -->
+    <div class="scan-editor-header">
+      <div class="scan-editor-title">
+        <svg viewBox="0 0 24 24"><path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h6v6h-6z"/></svg>
+        <span>Pemindai Dokumen Batas Kertas</span>
+      </div>
+      <button class="close-scan-btn" onclick="closeScannerModal()">&times;</button>
+    </div>
+
+    <!-- Workspace (Canvas & Draggable corners) -->
+    <div class="scan-canvas-wrapper" id="scanCanvasWrapper">
+      <canvas id="scanCanvas"></canvas>
+      
+      <!-- Magnifying Loupe Bubble -->
+      <div class="magnifying-loupe" id="loupeBubble">
+        <canvas id="loupeCanvas" width="90" height="90"></canvas>
+        <div class="loupe-crosshair"></div>
+      </div>
+    </div>
+
+    <!-- Footer Controls -->
+    <div class="scan-editor-footer">
+      <div class="scan-controls-row">
+        <!-- Tools -->
+        <div class="scan-tools-group">
+          <button class="scan-tool-btn" onclick="resetCropToFull()" title="Sesuaikan batas penuh gambar">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" style="stroke:currentColor;stroke-width:2"/><path d="M7 7h3v3M17 17h-3v-3"/></svg>
+            Batas Penuh
+          </button>
+          <button class="scan-tool-btn" onclick="resetCropToAuto()" title="Reset ke batas default">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m10 15 5-3-5-3"/></svg>
+            Batas Tengah
+          </button>
+        </div>
+
+        <!-- Filters Selection -->
+        <div class="filter-row">
+          <span class="filter-label">Filter Dokumen</span>
+          <div class="filter-options">
+            <button class="filter-btn active" id="filter-original" onclick="applyScanFilter('original')">Asli</button>
+            <button class="filter-btn" id="filter-magic" onclick="applyScanFilter('magic')" title="Putihkan kertas, tajamkan tulisan">Magic Color</button>
+            <button class="filter-btn" id="filter-bw" onclick="applyScanFilter('bw')" title="Teks hitam-putih kontras tinggi">B&amp;W</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="scan-actions-row">
+        <button class="scan-btn-cancel" onclick="closeScannerModal()">Batal</button>
+        <button class="scan-btn-confirm" onclick="applyPerspectiveWarp()">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Selesai &amp; Ratakan Dokumen
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- REFRESH CONFIRMATION MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-icon">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+    </div>
+    <div class="modal-title">Reset semua?</div>
+    <div class="modal-desc">Semua gambar, pemotongan, dan nama berkas akan dikosongkan. Tindakan ini tidak dapat dibatalkan.</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="hideRefreshModal()">Batal</button>
+      <button class="modal-confirm" onclick="doReset()">Reset Sekarang</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="app-footer">
+  <div class="footer-divider"></div>
+  <div class="footer-text">Dibuat dengan ❤️ oleh <span>Raynold</span> &nbsp;&bull;&nbsp; 2026</div>
+</footer>
+
+<!-- TOAST ALERTS -->
+<div class="toast" id="toast">
+  <svg id="toastIcon" viewBox="0 0 24 24"></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<!-- LIBRARIES -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+// STATE
+let images = [];
+let sortableInstance = null;
+
+// Scanner Modal State
+let currentEditIndex = -1;
+let scanImageElement = null; // Original image object currently editing
+let scanCorners = []; // 4 points in normalized coordinates [0.0 - 1.0]: Top-Left, Top-Right, Bottom-Right, Bottom-Left
+let activeCornerIndex = -1; // Dragged corner index: 0, 1, 2, 3 (-1 if none)
+let scanDisplayScale = 1.0; // scale from original image pixels to displayed canvas size
+let selectedFilter = 'original'; // 'original', 'magic', 'bw'
+
+// Drag threshold constants for precision
+const TOUCH_HIT_RADIUS = 30; // pixels to hit corner easily on mobile
+
+// INIT
+document.getElementById("fileName").value = localStorage.getItem("fileName") || "";
+document.getElementById("fileName").addEventListener("input", e => localStorage.setItem("fileName", e.target.value));
+
+const savedTheme = localStorage.getItem("theme") || "light";
+setTheme(savedTheme);
+
+// QUALITY SLIDER
+const qualitySlider = document.getElementById("qualitySlider");
+function updateSliderUI() {
+  const val = parseInt(qualitySlider.value);
+  const pct = ((val - 20) / (100 - 20)) * 100;
+  qualitySlider.style.setProperty("--pct", pct + "%");
+  document.getElementById("qualityVal").textContent = val + "%";
+  let desc = val <= 40 ? "Berkas Kecil (Draft)" : val <= 60 ? "Kompresi Sedang" : val <= 80 ? "Kualitas Bagus" : "Kualitas Maksimal";
+  document.getElementById("qualityDesc").textContent = desc;
+}
+qualitySlider.addEventListener("input", () => {
+  updateSliderUI();
+  // Deactivate preset buttons if they don't match slider value
+  document.querySelectorAll(".preset-btn").forEach(b => {
+    b.classList.toggle("active", parseInt(b.dataset.quality) === parseInt(qualitySlider.value));
+  });
+});
+updateSliderUI();
+
+function applyPreset(btn, quality) {
+  qualitySlider.value = quality;
+  updateSliderUI();
+  document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+// THEME TOGGLE
+function setTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("theme", theme);
+  const icon = document.getElementById("themeIcon");
+  if (theme === "dark") {
+    icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  } else {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  }
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute("data-theme");
+  setTheme(cur === "dark" ? "light" : "dark");
+}
+
+// DRAG & DROP & NATIVE CAMERA TRIGGERS
+const dropZone = document.getElementById("dropZone");
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("dragover"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+dropZone.addEventListener("drop", e => {
+  e.preventDefault(); dropZone.classList.remove("dragover");
+  loadFiles(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/")));
+});
+document.getElementById("imageInput").addEventListener("change", function(e) {
+  loadFiles(Array.from(e.target.files)); this.value = "";
+});
+document.getElementById("cameraInput").addEventListener("change", function(e) {
+  loadFiles(Array.from(e.target.files)); this.value = "";
+});
+
+// PARALLEL BATCH LOADING ORDER SAFE
+async function loadFiles(files) {
+  if (files.length === 0) return;
+
+  const loadPromise = files.map(file => {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const img = new Image();
+        img.src = ev.target.result;
+        img.onload = () => {
+          resolve({
+            originalSrc: ev.target.result, // Preserves the raw image for crop tweaking
+            src: ev.target.result,         // This is the active cropped/warped image
+            name: file.name,
+            size: file.size,
+            width: img.width,
+            height: img.height,
+            rotation: 0,
+            filter: 'original',
+            corners: [
+              { x: 0.15, y: 0.15 }, // Top-Left
+              { x: 0.85, y: 0.15 }, // Top-Right
+              { x: 0.85, y: 0.85 }, // Bottom-Right
+              { x: 0.15, y: 0.85 }  // Bottom-Left
+            ]
+          });
+        };
+        img.onerror = () => resolve(null);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  });
+
+  showToast(`Membaca ${files.length} berkas gambar...`, "info", '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>');
+
+  const results = await Promise.all(loadPromise);
+  const validImages = results.filter(img => img !== null);
+
+  images = [...images, ...validImages];
+  renderImages();
+  
+  showToast(`${validImages.length} gambar sukses ditambahkan!`, "success", '<polyline points="20 6 9 17 4 12"/>');
+}
+
+// RENDER IMAGES
+function renderImages() {
+  const container = document.getElementById("previewContainer");
+  const section = document.getElementById("previewSection");
+  document.getElementById("countPill").textContent = images.length;
+  section.style.display = images.length === 0 ? "none" : "block";
+  container.innerHTML = "";
+
+  images.forEach((img, i) => {
+    // Round size to friendly format
+    const sizeKB = (img.size / 1024).toFixed(0);
+    const sizeMB = (img.size / (1024 * 1024)).toFixed(1);
+    const sizeStr = img.size >= 1024*1024 ? sizeMB + " MB" : sizeKB + " KB";
+    
+    // Check if cropped
+    const isCropped = img.filter !== 'original' || (
+      img.corners[0].x !== 0.15 || img.corners[0].y !== 0.15 ||
+      img.corners[2].x !== 0.85 || img.corners[2].y !== 0.85
+    );
+
+    const div = document.createElement("div");
+    div.className = "preview-card"; div.dataset.index = i;
+    div.innerHTML = `
+      <div class="preview-img-box">
+        <img src="${img.src}" style="transform:rotate(${img.rotation}deg)" class="preview-img">
+        <button class="scan-badge-btn" title="Edit batas dokumen (CamScanner)" onclick="openScannerModal(${i})">
+          <svg viewBox="0 0 24 24"><path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h6v6h-6z"/></svg>
+          ${isCropped ? 'Scanner ✓' : 'Scan / Crop'}
+        </button>
+        <div class="drag-handle" title="Tahan dan geser untuk mengurutkan halaman">
+          <svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.5" fill="white"/><circle cx="9" cy="12" r="1.5" fill="white"/><circle cx="9" cy="18" r="1.5" fill="white"/><circle cx="15" cy="6" r="1.5" fill="white"/><circle cx="15" cy="12" r="1.5" fill="white"/><circle cx="15" cy="18" r="1.5" fill="white"/></svg>
+        </div>
+      </div>
+      <div class="preview-footer">
+        <div class="footer-meta-top">
+          <span class="num-badge">Hal ${i + 1}</span>
+          <span class="file-meta-name" title="${img.name}">${img.name}</span>
+          <span class="file-meta-dims">${img.width}×${img.height} px (${sizeStr})</span>
+        </div>
+        <div class="img-actions">
+          <button class="ic-btn" title="Putar Gambar 90 Derajat" onclick="rotateImage(${i})">
+            <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Putar
+          </button>
+          <button class="ic-btn del" title="Hapus Gambar" onclick="removeImage(${i})">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Hapus
+          </button>
+        </div>
+      </div>`;
+    container.appendChild(div);
+  });
+  enableDrag();
+}
+
+function rotateImage(i) {
+  images[i].rotation = (images[i].rotation + 90) % 360;
+  
+  // Update pixel width & height meta to reflect rotation coordinates
+  const w = images[i].width;
+  images[i].width = images[i].height;
+  images[i].height = w;
+  
+  renderImages();
+}
+
+function removeImage(i) {
+  images.splice(i, 1);
+  renderImages();
+}
+
+function clearImages() {
+  images = [];
+  renderImages();
+}
+
+// DRAG AND DROP MOBILE OPTIMIZED
+function enableDrag() {
+  const container = document.getElementById("previewContainer");
+  
+  // Safely destroy existing Sortable bindings to prevent memory leak
+  if (sortableInstance) {
+    sortableInstance.destroy();
+  }
+  
+  sortableInstance = new Sortable(container, {
+    animation: 180,
+    ghostClass: "sortable-ghost",
+    dragClass: "sortable-drag",
+    handle: ".drag-handle",
+    forceFallback: true,
+    fallbackOnBody: true,
+    swapThreshold: 0.65,
+    
+    // Critical configurations for high responsive touch screen drag on mobile:
+    delay: 150,               // 150ms delay on touch prevents scrolling conflict
+    delayOnTouchOnly: true,   // delay only triggers on mobile touchscreen
+    touchStartThreshold: 5,   // finger must move at least 5px to start drag
+    
+    onEnd: function(evt) {
+      if (evt.oldIndex === evt.newIndex) return;
+      const moved = images.splice(evt.oldIndex, 1)[0];
+      images.splice(evt.newIndex, 0, moved);
+      renderImages();
+    }
+  });
+}
+
+// CONFIRMATION MODAL RESET ALL
+function showRefreshModal() { document.getElementById("modalOverlay").classList.add("show"); }
+function hideRefreshModal() { document.getElementById("modalOverlay").classList.remove("show"); }
+document.getElementById("modalOverlay").addEventListener("click", function(e) { if (e.target === this) hideRefreshModal(); });
+
+function doReset() {
+  images = [];
+  document.getElementById("fileName").value = "";
+  document.getElementById("paperSize").value = "original";
+  document.getElementById("paperOrientation").value = "auto";
+  document.getElementById("pageMargin").value = "none";
+  qualitySlider.value = 80;
+  updateSliderUI();
+  localStorage.removeItem("fileName");
+  renderImages();
+  hideRefreshModal();
+  showToast("Pengaturan dan gambar berhasil direset!", "info", '<svg viewBox="0 0 24 24"><path d="M20 11.08V12a8 8 0 1 1-4.8-7.33"/><polyline points="22 4 12 14.01 9 11.01"/></svg>');
+}
+
+// TOAST NOTIFIER
+function showToast(msg, type = "info", iconPath = '') {
+  const t = document.getElementById("toast");
+  document.getElementById("toastMsg").textContent = msg;
+  document.getElementById("toastIcon").innerHTML = iconPath;
+  t.className = "toast " + type;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+
+/* ==========================================
+   CAMSCANNER DOCUMENT SCANNER LOGIC (CANVAS)
+   ========================================== */
+
+function openScannerModal(index) {
+  currentEditIndex = index;
+  const imgData = images[index];
+  selectedFilter = imgData.filter;
+  scanCorners = JSON.parse(JSON.stringify(imgData.corners)); // Clone corners
+  
+  // Set filter buttons state
+  document.querySelectorAll(".filter-btn").forEach(btn => btn.classList.remove("active"));
+  document.getElementById("filter-" + selectedFilter).classList.add("active");
+
+  const overlay = document.getElementById("scannerModal");
+  overlay.classList.add("show");
+
+  // Load raw original source
+  scanImageElement = new Image();
+  scanImageElement.src = imgData.originalSrc;
+  scanImageElement.onload = function() {
+    initScannerCanvas();
+  };
+}
+
+function closeScannerModal() {
+  document.getElementById("scannerModal").classList.remove("show");
+  activeCornerIndex = -1;
+  document.getElementById("loupeBubble").style.display = "none";
+}
+
+function initScannerCanvas() {
+  const wrapper = document.getElementById("scanCanvasWrapper");
+  const canvas = document.getElementById("scanCanvas");
+  
+  // Set dimensions based on editor wrapper container size (e.g. 90vw width, 52vh height)
+  const maxW = wrapper.clientWidth;
+  const maxH = wrapper.clientHeight;
+  
+  scanDisplayScale = Math.min(maxW / scanImageElement.width, maxH / scanImageElement.height);
+  
+  canvas.width = scanImageElement.width * scanDisplayScale;
+  canvas.height = scanImageElement.height * scanDisplayScale;
+  
+  // Setup mouse & touch listeners
+  setupScannerEvents(canvas);
+  drawScanner();
+}
+
+function drawScanner() {
+  const canvas = document.getElementById("scanCanvas");
+  const ctx = canvas.getContext("2d");
+  
+  // 1. Draw Image
+  ctx.drawImage(scanImageElement, 0, 0, canvas.width, canvas.height);
+  
+  // 2. Draw semi-transparent background overlay
+  ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+  ctx.beginPath();
+  ctx.rect(0, 0, canvas.width, canvas.height);
+  
+  // Cut out the cropping polygon (wind/unwind rule)
+  ctx.moveTo(scanCorners[0].x * canvas.width, scanCorners[0].y * canvas.height);
+  for (let i = 3; i >= 0; i--) {
+    ctx.lineTo(scanCorners[i].x * canvas.width, scanCorners[i].y * canvas.height);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // 3. Draw Connecting Polygon Neon Borders (CamScanner Green!)
+  ctx.strokeStyle = "#22c55e";
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = "#22c55e";
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(scanCorners[0].x * canvas.width, scanCorners[0].y * canvas.height);
+  for (let i = 1; i < 4; i++) {
+    ctx.lineTo(scanCorners[i].x * canvas.width, scanCorners[i].y * canvas.height);
+  }
+  ctx.closePath();
+  ctx.stroke();
+  
+  // Reset shadow for drawing circles
+  ctx.shadowBlur = 0;
+
+  // 4. Draw Point Handles
+  scanCorners.forEach((pt, idx) => {
+    const cx = pt.x * canvas.width;
+    const cy = pt.y * canvas.height;
+    
+    // Drag Target Handle ring
+    ctx.fillStyle = idx === activeCornerIndex ? "#10b981" : "#ffffff";
+    ctx.strokeStyle = "#22c55e";
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, idx === activeCornerIndex ? 12 : 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    
+    // Draw cross inside handle for precision
+    ctx.strokeStyle = idx === activeCornerIndex ? "#ffffff" : "#22c55e";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - 4, cy); ctx.lineTo(cx + 4, cy);
+    ctx.moveTo(cx, cy - 4); ctx.lineTo(cx, cy + 4);
+    ctx.stroke();
+  });
+}
+
+// SETUP DRAGGING GESTURES (MOBILE + DESKTOP)
+function setupScannerEvents(canvas) {
+  const getCoords = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  };
+
+  const handleStart = (e) => {
+    e.preventDefault();
+    const pos = getCoords(e);
+    
+    // Detect if finger touches close to any corner handle (optimized touch hit target)
+    let closestIndex = -1;
+    let minDist = TOUCH_HIT_RADIUS;
+
+    scanCorners.forEach((pt, idx) => {
+      const cx = pt.x * canvas.width;
+      const cy = pt.y * canvas.height;
+      const dist = Math.sqrt((pos.x - cx) ** 2 + (pos.y - cy) ** 2);
+      if (dist < minDist) {
+        minDist = dist;
+        closestIndex = idx;
+      }
+    });
+
+    if (closestIndex !== -1) {
+      activeCornerIndex = closestIndex;
+      updateLoupe(pos, e);
+      drawScanner();
+    }
+  };
+
+  const handleMove = (e) => {
+    if (activeCornerIndex === -1) return;
+    e.preventDefault();
+    const pos = getCoords(e);
+
+    // Limit within canvas bounds
+    const nx = Math.max(0, Math.min(1, pos.x / canvas.width));
+    const ny = Math.max(0, Math.min(1, pos.y / canvas.height));
+
+    scanCorners[activeCornerIndex].x = nx;
+    scanCorners[activeCornerIndex].y = ny;
+
+    updateLoupe({ x: nx * canvas.width, y: ny * canvas.height }, e);
+    drawScanner();
+  };
+
+  const handleEnd = () => {
+    if (activeCornerIndex !== -1) {
+      activeCornerIndex = -1;
+      document.getElementById("loupeBubble").style.display = "none";
+      drawScanner();
+    }
+  };
+
+  // Bind Mouse & Touch events
+  canvas.onmousedown = handleStart;
+  window.onmousemove = handleMove;
+  window.onmouseup = handleEnd;
+
+  canvas.ontouchstart = handleStart;
+  window.ontouchmove = handleMove;
+  window.ontouchend = handleEnd;
+}
+
+// BUBBLE LOUPE MAGNIFIER
+function updateLoupe(canvasPos, e) {
+  const loupe = document.getElementById("loupeBubble");
+  const loupeCanvas = document.getElementById("loupeCanvas");
+  const lCtx = loupeCanvas.getContext("2d");
+  const canvas = document.getElementById("scanCanvas");
+
+  loupe.style.display = "block";
+  
+  // Position loupe vertically above user's touch/mouse coordinate
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  
+  loupe.style.left = `${clientX - 45}px`;
+  loupe.style.top = `${clientY - 120}px`;
+
+  // Draw 3x zoomed segment of original image centered at the coordinate
+  lCtx.fillStyle = "#111827";
+  lCtx.fillRect(0, 0, 90, 90);
+
+  // Convert canvas display coordinates back to original image space
+  const origX = canvasPos.x / scanDisplayScale;
+  const origY = canvasPos.y / scanDisplayScale;
+
+  // Zoom parameters: take 30x30px area and upscale to 90x90px canvas (3x Zoom)
+  const zSize = 30;
+  lCtx.drawImage(
+    scanImageElement,
+    origX - zSize / 2, origY - zSize / 2, zSize, zSize,
+    0, 0, 90, 90
+  );
+}
+
+// RESET CROP CONFIGURATIONS
+function resetCropToFull() {
+  scanCorners = [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 1, y: 1 },
+    { x: 0, y: 1 }
+  ];
+  drawScanner();
+}
+
+function resetCropToAuto() {
+  scanCorners = [
+    { x: 0.15, y: 0.15 },
+    { x: 0.85, y: 0.15 },
+    { x: 0.85, y: 0.85 },
+    { x: 0.15, y: 0.85 }
+  ];
+  drawScanner();
+}
+
+function applyScanFilter(filterType) {
+  selectedFilter = filterType;
+  document.querySelectorAll(".filter-btn").forEach(btn => btn.classList.remove("active"));
+  document.getElementById("filter-" + filterType).classList.add("active");
+}
+
+
+/* =======================================================
+   PERSPECTIVE WARP COMPUTATIONAL ENGINE (PURE JAVASCRIPT)
+   ======================================================= */
+
+// linear systems Gaussian elimination solver
+function solveLinearSystem(A, b) {
+  const n = b.length;
+  for (let i = 0; i < n; i++) {
+    // Find pivot row
+    let maxRow = i;
+    let maxVal = Math.abs(A[i][i]);
+    for (let k = i + 1; k < n; k++) {
+      if (Math.abs(A[k][i]) > maxVal) {
+        maxVal = Math.abs(A[k][i]);
+        maxRow = k;
+      }
+    }
+    
+    // Swap rows
+    const tempRow = A[i];
+    A[i] = A[maxRow];
+    A[maxRow] = tempRow;
+    const tempB = b[i];
+    b[i] = b[maxRow];
+    b[maxRow] = tempB;
+
+    if (Math.abs(A[i][i]) < 1e-12) return null; // Singular matrix
+
+    // Eliminate column
+    for (let k = i + 1; k < n; k++) {
+      const c = -A[k][i] / A[i][i];
+      for (let j = i; j < n; j++) {
+        if (i === j) A[k][j] = 0;
+        else A[k][j] += c * A[i][j];
+      }
+      b[k] += c * b[i];
+    }
+  }
+
+  // Back substitution
+  const x = new Array(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    x[i] = b[i] / A[i][i];
+    for (let k = i - 1; k >= 0; k--) {
+      b[k] -= A[k][i] * x[i];
+    }
+  }
+  return x;
+}
+
+// Find homography matrix to map destination rect corners to source quad corners
+function getPerspectiveHomography(srcPoints, dstPoints) {
+  const A = [];
+  const b = [];
+  for (let i = 0; i < 4; i++) {
+    const sx = srcPoints[i].x, sy = srcPoints[i].y; // Dest (rectangular)
+    const dx = dstPoints[i].x, dy = dstPoints[i].y; // Src (warped quad)
+    A.push([sx, sy, 1, 0, 0, 0, -sx * dx, -sy * dx]);
+    b.push(dx);
+    A.push([0, 0, 0, sx, sy, 1, -sx * dy, -sy * dy]);
+    b.push(dy);
+  }
+  const h = solveLinearSystem(A, b);
+  if (!h) return null;
+  return [h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], 1.0];
+}
+
+// Bilinear interpolation perspective warp engine
+function executePerspectiveWarp(srcCanvas, dstCanvas, H) {
+  const srcCtx = srcCanvas.getContext("2d");
+  const dstCtx = dstCanvas.getContext("2d");
+  
+  const sw = srcCanvas.width, sh = srcCanvas.height;
+  const dw = dstCanvas.width, dh = dstCanvas.height;
+  
+  const srcData = srcCtx.getImageData(0, 0, sw, sh);
+  const dstData = dstCtx.createImageData(dw, dh);
+  
+  const sPixels = srcData.data;
+  const dPixels = dstData.data;
+  
+  const h0 = H[0], h1 = H[1], h2 = H[2],
+        h3 = H[3], h4 = H[4], h5 = H[5],
+        h6 = H[6], h7 = H[7], h8 = H[8];
+        
+  for (let v = 0; v < dh; v++) {
+    for (let u = 0; u < dw; u++) {
+      const denom = h6 * u + h7 * v + h8;
+      if (Math.abs(denom) < 1e-10) continue;
+      
+      // Map destination (u,v) to source image plane (x,y)
+      const x = (h0 * u + h1 * v + h2) / denom;
+      const y = (h3 * u + h4 * v + h5) / denom;
+      
+      const x0 = Math.floor(x);
+      const y0 = Math.floor(y);
+      const dstIdx = (v * dw + u) * 4;
+      
+      if (x0 >= 0 && x0 < sw - 1 && y0 >= 0 && y0 < sh - 1) {
+        // Bilinear interpolation math
+        const dx = x - x0;
+        const dy = y - y0;
+        const w00 = (1 - dx) * (1 - dy);
+        const w10 = dx * (1 - dy);
+        const w01 = (1 - dx) * dy;
+        const w11 = dx * dy;
+        
+        const idx00 = (y0 * sw + x0) * 4;
+        const idx10 = (y0 * sw + (x0 + 1)) * 4;
+        const idx01 = ((y0 + 1) * sw + x0) * 4;
+        const idx11 = ((y0 + 1) * sw + (x0 + 1)) * 4;
+        
+        dPixels[dstIdx]   = w00 * sPixels[idx00]   + w10 * sPixels[idx10]   + w01 * sPixels[idx01]   + w11 * sPixels[idx11];
+        dPixels[dstIdx+1] = w00 * sPixels[idx00+1] + w10 * sPixels[idx10+1] + w01 * sPixels[idx01+1] + w11 * sPixels[idx11+1];
+        dPixels[dstIdx+2] = w00 * sPixels[idx00+2] + w10 * sPixels[idx10+2] + w01 * sPixels[idx01+2] + w11 * sPixels[idx11+2];
+        dPixels[dstIdx+3] = 255; // White background solid
+      } else {
+        // Out of bounds is white paper background
+        dPixels[dstIdx]   = 255;
+        dPixels[dstIdx+1] = 255;
+        dPixels[dstIdx+2] = 255;
+        dPixels[dstIdx+3] = 255;
+      }
+    }
+  }
+  dstCtx.putImageData(dstData, 0, 0);
+}
+
+// APPLY SCANNING, WARPING AND CONTRAST ENHANCEMENTS
+async function applyPerspectiveWarp() {
+  if (currentEditIndex === -1) return;
+  
+  showToast("Ratakan & kompresi dokumen...", "info", '<svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>');
+  
+  // 1. Setup raw offline canvas
+  const srcCanvas = document.createElement("canvas");
+  srcCanvas.width = scanImageElement.width;
+  srcCanvas.height = scanImageElement.height;
+  const sCtx = srcCanvas.getContext("2d");
+  sCtx.drawImage(scanImageElement, 0, 0);
+  
+  // 2. Convert corner points from normalized bounds to real original pixel values
+  const p0 = { x: scanCorners[0].x * srcCanvas.width, y: scanCorners[0].y * srcCanvas.height }; // Top-Left
+  const p1 = { x: scanCorners[1].x * srcCanvas.width, y: scanCorners[1].y * srcCanvas.height }; // Top-Right
+  const p2 = { x: scanCorners[2].x * srcCanvas.width, y: scanCorners[2].y * srcCanvas.height }; // Bottom-Right
+  const p3 = { x: scanCorners[3].x * srcCanvas.width, y: scanCorners[3].y * srcCanvas.height }; // Bottom-Left
+  
+  // 3. Compute optimal warped rectangular paper dimensions
+  const w1 = Math.sqrt((p0.x - p1.x) ** 2 + (p0.y - p1.y) ** 2);
+  const w2 = Math.sqrt((p3.x - p2.x) ** 2 + (p3.y - p2.y) ** 2);
+  const h1 = Math.sqrt((p0.x - p3.x) ** 2 + (p0.y - p3.y) ** 2);
+  const h2 = Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+  
+  const destW = Math.round(Math.max(w1, w2));
+  const destH = Math.round(Math.max(h1, h2));
+
+  // Minimum size security check
+  if (destW < 50 || destH < 50) {
+    showToast("Area potong kertas terlalu sempit!", "error", '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>');
+    return;
+  }
+
+  const dstCanvas = document.createElement("canvas");
+  dstCanvas.width = destW;
+  dstCanvas.height = destH;
+  
+  // 4. Calculate Homography
+  const srcRect = [
+    { x: 0, y: 0 },
+    { x: destW, y: 0 },
+    { x: destW, y: destH },
+    { x: 0, y: destH }
+  ];
+  const dstQuad = [p0, p1, p2, p3];
+  
+  const H = getPerspectiveHomography(srcRect, dstQuad);
+  if (!H) {
+    showToast("Gagal memecahkan batas perspektif!", "error", '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>');
+    return;
+  }
+
+  // 5. Run Warp
+  executePerspectiveWarp(srcCanvas, dstCanvas, H);
+
+  // 6. Apply document enhancement filters (Magic Color, B&W)
+  applyEnhancementFilters(dstCanvas, selectedFilter);
+
+  // Save changes
+  const qualityVal = parseInt(qualitySlider.value) / 100;
+  const processedDataUrl = dstCanvas.toDataURL("image/jpeg", qualityVal);
+  
+  images[currentEditIndex].src = processedDataUrl;
+  images[currentEditIndex].corners = JSON.parse(JSON.stringify(scanCorners)); // Preserve crop points
+  images[currentEditIndex].filter = selectedFilter;
+  images[currentEditIndex].width = destW;
+  images[currentEditIndex].height = destH;
+  
+  renderImages();
+  closeScannerModal();
+  
+  showToast("Batas dokumen berhasil diterapkan!", "success", '<polyline points="20 6 9 17 4 12"/>');
+}
+
+// CAMSCANNER STYLE CONTRAST ENHANCEMENTS
+function applyEnhancementFilters(canvas, filter) {
+  if (filter === 'original') return;
+  
+  const ctx = canvas.getContext("2d");
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = imgData.data;
+
+  if (filter === 'magic') {
+    // Magic Color Enhancement: boost contrast, white background saturation
+    const factor = 1.35; // Contrast multiplier
+    const brightness = 18; // Whites boost
+    
+    for (let i = 0; i < d.length; i += 4) {
+      let r = d[i], g = d[i+1], b = d[i+2];
+
+      // Contrast + Brightness equation
+      r = (r - 128) * factor + 128 + brightness;
+      g = (g - 128) * factor + 128 + brightness;
+      b = (b - 128) * factor + 128 + brightness;
+
+      // Smart White Paper Threshold: make near-whites pure white
+      const t = 185;
+      if (r > t && g > t && b > t) {
+        r = Math.min(255, r + 22);
+        g = Math.min(255, g + 22);
+        b = Math.min(255, b + 22);
+      }
+
+      d[i]   = Math.min(255, Math.max(0, r));
+      d[i+1] = Math.min(255, Math.max(0, g));
+      d[i+2] = Math.min(255, Math.max(0, b));
+    }
+  } else if (filter === 'bw') {
+    // B&W High-Contrast (Photocopy look)
+    const factor = 2.4; 
+    const brightness = 10;
+    
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i+1], b = d[i+2];
+      
+      // Grayscale
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      
+      // Deepen darks and whiten light gray pixels sharply
+      let val = (gray - 128) * factor + 128 + brightness;
+      val = Math.min(255, Math.max(0, val));
+      
+      d[i] = d[i+1] = d[i+2] = val;
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+
+/* ========================================================
+   SINGLE-CANVAS RESOLUTION RESIZE & jsPDF DOCUMENT WRITER
+   ======================================================== */
+
+// Single-canvas rotation + compression processor
+function processImageFinal(imgObj, quality) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.src = imgObj.src;
+    img.onload = function() {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      // Set canvas rotation angles
+      const rad = (imgObj.rotation || 0) * Math.PI / 180;
+      const sin = Math.abs(Math.sin(rad));
+      const cos = Math.abs(Math.cos(rad));
+
+      const w = Math.round(img.width * cos + img.height * sin);
+      const h = Math.round(img.width * sin + img.height * cos);
+
+      canvas.width = w;
+      canvas.height = h;
+
+      // Fill background white solid (PNG transparent safety fix!)
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+
+      // Translate, Rotate and draw image
+      ctx.translate(w / 2, h / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+      resolve({
+        dataUrl: canvas.toDataURL("image/jpeg", quality),
+        width: w,
+        height: h
+      });
+    };
+  });
+}
+
+// Main PDF Generator
+async function convertToPDF() {
+  if (images.length === 0) {
+    showToast("Unggah gambar/dokumen terlebih dahulu!", "error", '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>');
+    return;
+  }
+
+  const btn = document.getElementById("convertBtn");
+  const btnText = document.getElementById("btnText");
+  const spinner = document.getElementById("spinner");
+  const progressWrap = document.getElementById("progressWrap");
+
+  btn.disabled = true; btnText.textContent = "Mengonversi PDF..."; spinner.style.display = "block";
+  progressWrap.classList.add("show");
+  setProgress(0, "Mengekstrak berkas...", "Memulai mesin konversi...");
+
+  const quality = parseInt(qualitySlider.value) / 100;
+  const { jsPDF } = window.jspdf;
+  
+  const paperFormat = document.getElementById("paperSize").value;
+  const paperOrient = document.getElementById("paperOrientation").value;
+  const selectedMargin = document.getElementById("pageMargin").value;
+  
+  // Margin values in mm
+  let marginMm = 0;
+  if (selectedMargin === "thin") marginMm = 5;
+  else if (selectedMargin === "normal") marginMm = 12;
+  else if (selectedMargin === "thick") marginMm = 20;
+
+  let pdf = null;
+
+  for (let i = 0; i < images.length; i++) {
+    const pct = (i / images.length) * 90;
+    setProgress(pct, `Memproses berkas ${i + 1} dari ${images.length}`, `Mengompresi gambar kualitas ${Math.round(quality * 100)}%...`);
+
+    const imgObj = images[i];
+    
+    // Process final canvas (fills PNG transparency with white background instantly)
+    const proc = await processImageFinal(imgObj, quality);
+
+    // Calculate dimensions
+    let pw, ph; // Page width and height in mm
+    let orientation = "p";
+
+    // Auto orientation matching image aspect ratio
+    if (paperOrient === "auto") {
+      orientation = (proc.width > proc.height) ? "l" : "p";
+    } else {
+      orientation = paperOrient === "landscape" ? "l" : "p";
+    }
+
+    // Determine Paper base sizes in mm
+    if (paperFormat === "original") {
+      // 1 pixel = 0.264583 mm at 96 DPI
+      pw = proc.width * 0.264583;
+      ph = proc.height * 0.264583;
+    } else {
+      // Standard paper constants [Width, Height] in mm
+      let baseDims = [210, 297]; // Default A4
+      if (paperFormat === "f4") baseDims = [210, 330];
+      else if (paperFormat === "letter") baseDims = [215.9, 279.4];
+      else if (paperFormat === "legal") baseDims = [215.9, 355.6];
+
+      if (orientation === "l") {
+        pw = baseDims[1]; ph = baseDims[0];
+      } else {
+        pw = baseDims[0]; ph = baseDims[1];
+      }
+    }
+
+    // Create jsPDF Instance if first page
+    if (i === 0) {
+      pdf = new jsPDF(orientation, "mm", [pw, ph]);
+    } else {
+      // Use array for custom dimensions, or name string
+      pdf.addPage([pw, ph], orientation);
+    }
+
+    // Advanced fit-to-page calculations (centers perfectly and avoids cropping overflow)
+    let printableW = pw - (2 * marginMm);
+    let printableH = ph - (2 * marginMm);
+
+    let drawW, drawH;
+    const imgRatio = proc.width / proc.height;
+    const printRatio = printableW / printableH;
+
+    if (paperFormat === "original") {
+      // Original size is pixel matching
+      drawW = pw;
+      drawH = ph;
+      marginMm = 0; // No margin in original size
+    } else {
+      // Standard page fitting calculation
+      if (imgRatio > printRatio) {
+        // Fit to width
+        drawW = printableW;
+        drawH = printableW / imgRatio;
+      } else {
+        // Fit to height
+        drawH = printableH;
+        drawW = printableH * imgRatio;
+      }
+    }
+
+    // Center layout coordinates
+    const drawX = marginMm + (printableW - drawW) / 2;
+    const drawY = marginMm + (printableH - drawH) / 2;
+
+    pdf.addImage(proc.dataUrl, "JPEG", drawX, drawY, drawW, drawH);
+    
+    // Tiny cooling delay for async rendering
+    await new Promise(r => setTimeout(r, 40));
+  }
+
+  setProgress(95, "Merakit PDF berkas...", "Sedang mengemas dokumen...");
+  await new Promise(r => setTimeout(r, 250));
+
+  if (!pdf) {
+    showToast("Gagal memproses berkas PDF!", "error", '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>');
+    btn.disabled = false; btnText.textContent = "Simpan & Konversi ke PDF"; spinner.style.display = "none";
+    progressWrap.classList.remove("show");
+    return;
+  }
+
+  setProgress(100, "Selesai!", "Konversi PDF berhasil.");
+  
+  let fileName = document.getElementById("fileName").value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "-") || "dokumen";
+  
+  const pdfBlob = pdf.output('blob');
+  const sizeMB = (pdfBlob.size / (1024 * 1024)).toFixed(2);
+  const sizeKB = (pdfBlob.size / 1024).toFixed(0);
+  const sizeStr = pdfBlob.size >= 1024*1024 ? sizeMB + " MB" : sizeKB + " KB";
+  
+  showToast(`PDF Berhasil! · ${images.length} Hal · ${sizeStr}`, "success", '<polyline points="20 6 9 17 4 12"/>');
+
+  setTimeout(() => {
+    pdf.save(fileName + ".pdf");
+    btn.disabled = false; btnText.textContent = "Simpan & Konversi ke PDF"; spinner.style.display = "none";
+    setTimeout(() => progressWrap.classList.remove("show"), 800);
+  }, 400);
+}
+
+function setProgress(pct, label, detail) {
+  document.getElementById("progressBar").style.width = pct + "%";
+  document.getElementById("progressPct").textContent = Math.round(pct) + "%";
+  if (label) document.getElementById("progressLabel").textContent = label;
+  if (detail) document.getElementById("progressDetail").textContent = detail;
+}
+
+// SERVICE WORKER PWA INTEGRATION
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js').catch(() => {});
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "Image to PDF Pro - Scanner",
+  "short_name": "Img2PDF Scanner",
+  "description": "Ubah gambar dan foto kamera menjadi berkas PDF berkualitas tinggi dengan fitur pemotong batas kertas CamScanner bawaan.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='128' fill='%234f46e5'/><path d='M160 96h192a64 64 0 0 1 64 64v192a64 64 0 0 1-64 64H160a64 64 0 0 1-64-64V160a64 64 0 0 1 64-64z' fill='white'/><path d='M200 160h112v40H200zm0 70h112v40H200zm0 70h70v40H200z' fill='%234f46e5'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
