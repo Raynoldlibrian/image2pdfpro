@@ -1,4 +1,4 @@
-const CACHE_NAME = "img2pdf-pro";
+const CACHE_NAME = "img2pdf-scanner-v3";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",

@@ -812,6 +812,9 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
       </div>
     </div>
     <div class="topbar-actions">
+      <button class="icon-btn" id="clearCacheBtn" onclick="forceClearCache()" title="Hapus Cache & Muat Ulang (untuk update terbaru)">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+      </button>
       <button class="refresh-btn" onclick="showRefreshModal()" title="Reset semua pengaturan dan gambar">
         <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
         <span>Reset</span>
@@ -1000,9 +1003,9 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
             <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" style="stroke:currentColor;stroke-width:2"/><path d="M7 7h3v3M17 17h-3v-3"/></svg>
             Batas Penuh
           </button>
-          <button class="scan-tool-btn" onclick="resetCropToAuto()" title="Deteksi batas kertas secara otomatis">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m10 15 5-3-5-3"/></svg>
-            Deteksi Otomatis
+          <button class="scan-tool-btn" style="background:var(--accent);color:white;border-color:var(--accent);" onclick="resetCropToAuto()" title="Deteksi batas kertas secara otomatis">
+            <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            ✦ Deteksi Otomatis
           </button>
         </div>
 
@@ -1141,105 +1144,139 @@ document.getElementById("cameraInput").addEventListener("change", function(e) {
   loadFiles(Array.from(e.target.files)); this.value = "";
 });
 
-// AUTO DOCUMENT BOUNDARY & CORNER DETECTOR (PURE JS SOBEL + GRID-BASED ROBUST CORNER VOTING)
+// AUTO DOCUMENT BOUNDARY & CORNER DETECTOR
+// Strategy: Sobel edge detection + luminance-based foreground mask + quadrant corner voting
 function autoDetectPaperCorners(img) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
-  // Use higher resolution for better edge accuracy (max 400px wide)
-  const w = Math.min(400, img.width);
+  // Use 320px wide for good accuracy vs speed balance
+  const w = Math.min(320, img.width);
   const h = Math.round((img.height * w) / img.width);
   canvas.width = w;
   canvas.height = h;
-
   ctx.drawImage(img, 0, 0, w, h);
 
   try {
     const imgData = ctx.getImageData(0, 0, w, h);
     const d = imgData.data;
+    const total = w * h;
 
-    // === Step 1: Compute Sobel edge map ===
-    const edgeMap = new Float32Array(w * h);
+    // === Step 1: Build grayscale + compute luminance stats ===
+    const gray = new Float32Array(total);
+    let lumSum = 0;
+    for (let i = 0; i < total; i++) {
+      const v = 0.299 * d[i*4] + 0.587 * d[i*4+1] + 0.114 * d[i*4+2];
+      gray[i] = v;
+      lumSum += v;
+    }
+    const lumMean = lumSum / total;
+
+    // Compute variance for adaptive thresholding
+    let lumVar = 0;
+    for (let i = 0; i < total; i++) lumVar += (gray[i] - lumMean) ** 2;
+    lumVar /= total;
+    const lumStd = Math.sqrt(lumVar);
+
+    // === Step 2: Sobel edge map ===
+    const edgeMap = new Float32Array(total);
     let maxGrad = 0;
-
     for (let y = 1; y < h - 1; y++) {
       for (let x = 1; x < w - 1; x++) {
-        const getGray = (dx, dy) => {
-          const i = ((y + dy) * w + (x + dx)) * 4;
-          return 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-        };
-        const gx = (getGray(1,-1) + 2*getGray(1,0) + getGray(1,1)) -
-                   (getGray(-1,-1) + 2*getGray(-1,0) + getGray(-1,1));
-        const gy = (getGray(-1,1) + 2*getGray(0,1) + getGray(1,1)) -
-                   (getGray(-1,-1) + 2*getGray(0,-1) + getGray(1,-1));
-        const grad = Math.sqrt(gx * gx + gy * gy);
-        edgeMap[y * w + x] = grad;
-        if (grad > maxGrad) maxGrad = grad;
+        const g = (dx, dy) => gray[(y+dy)*w + (x+dx)];
+        const gx = (g(1,-1) + 2*g(1,0) + g(1,1)) - (g(-1,-1) + 2*g(-1,0) + g(-1,1));
+        const gy = (g(-1,1) + 2*g(0,1) + g(1,1)) - (g(-1,-1) + 2*g(0,-1) + g(1,-1));
+        const mag = Math.sqrt(gx*gx + gy*gy);
+        edgeMap[y*w + x] = mag;
+        if (mag > maxGrad) maxGrad = mag;
       }
     }
 
-    // Adaptive threshold: 20% of max gradient, minimum 25
-    const edgeThresh = Math.max(25, maxGrad * 0.20);
+    // Adaptive edge threshold: 18% of max, but never below 20
+    const edgeThresh = Math.max(20, maxGrad * 0.18);
 
-    // === Step 2: Collect strong edge points, skip image border strip ===
-    const BORDER = Math.round(Math.min(w, h) * 0.03); // 3% border exclusion
-    const edgePoints = [];
-    for (let y = BORDER; y < h - BORDER; y++) {
-      for (let x = BORDER; x < w - BORDER; x++) {
-        if (edgeMap[y * w + x] > edgeThresh) {
-          edgePoints.push({ x: x / w, y: y / h, grad: edgeMap[y * w + x] });
+    // === Step 3: Foreground mask — pixels that differ significantly from background ===
+    // Background is assumed to be the border strip of the image
+    // Collect border pixel luminance values and compute median
+    const borderLums = [];
+    const BSTRIP = Math.round(Math.min(w, h) * 0.06);
+    for (let x = 0; x < w; x++) {
+      borderLums.push(gray[x], gray[(h-1)*w + x]);
+    }
+    for (let y = BSTRIP; y < h - BSTRIP; y++) {
+      borderLums.push(gray[y*w], gray[y*w + w-1]);
+    }
+    borderLums.sort((a,b) => a-b);
+    const bgLum = borderLums[Math.floor(borderLums.length / 2)];
+
+    // Foreground = pixels whose luminance differs from bg by more than 0.6*std
+    const fgThresh = Math.max(15, lumStd * 0.6);
+    const isFG = (idx) => Math.abs(gray[idx] - bgLum) > fgThresh;
+
+    // === Step 4: Collect scored edge points (edge + foreground bonus) ===
+    // Exclude a thin image border strip from candidates
+    const EXCL = Math.round(Math.min(w, h) * 0.04);
+    const candidates = [];
+    for (let y = EXCL; y < h - EXCL; y++) {
+      for (let x = EXCL; x < w - EXCL; x++) {
+        const idx = y*w + x;
+        if (edgeMap[idx] > edgeThresh) {
+          const fgBonus = isFG(idx) ? 1.4 : 1.0;
+          candidates.push({
+            x: x / w,
+            y: y / h,
+            score: (edgeMap[idx] / maxGrad) * fgBonus
+          });
         }
       }
     }
 
-    if (edgePoints.length < 80) return null; // Not enough edges to be reliable
+    if (candidates.length < 60) return null;
 
-    // === Step 3: Grid-voting — divide image into 4 quadrants, find best corner in each ===
-    // Each quadrant votes for the point that is most "corner-like" (extreme + strong gradient)
-    // TL quadrant: x in [0, 0.5), y in [0, 0.5)  → minimize x+y
-    // TR quadrant: x in [0.5, 1), y in [0, 0.5)  → maximize x-y
-    // BR quadrant: x in [0.5, 1), y in [0.5, 1)  → maximize x+y
-    // BL quadrant: x in [0, 0.5), y in [0.5, 1)  → minimize x-y
+    // === Step 5: Per-quadrant corner voting with overlap zone ===
+    // Quadrants have 10% overlap so objects near center aren't missed
+    const OVL = 0.10;
+    const zones = [
+      { name:'tl', xMax: 0.5+OVL, yMax: 0.5+OVL, fn: p => -(p.x + p.y) },
+      { name:'tr', xMin: 0.5-OVL, yMax: 0.5+OVL, fn: p =>  (p.x - p.y) },
+      { name:'br', xMin: 0.5-OVL, yMin: 0.5-OVL, fn: p =>  (p.x + p.y) },
+      { name:'bl', xMax: 0.5+OVL, yMin: 0.5-OVL, fn: p => -(p.x - p.y) },
+    ];
 
-    const findBest = (points, scoreFn) => {
-      let best = null, bestScore = -Infinity;
-      for (const p of points) {
-        const s = scoreFn(p);
-        if (s > bestScore) { bestScore = s; best = p; }
+    const corners = {};
+    for (const z of zones) {
+      let best = null, bestS = -Infinity;
+      for (const p of candidates) {
+        if (z.xMin !== undefined && p.x < z.xMin) continue;
+        if (z.xMax !== undefined && p.x > z.xMax) continue;
+        if (z.yMin !== undefined && p.y < z.yMin) continue;
+        if (z.yMax !== undefined && p.y > z.yMax) continue;
+        // Combined score: 75% geometric extremeness + 25% edge strength
+        const s = z.fn(p) * 0.75 + p.score * 0.25;
+        if (s > bestS) { bestS = s; best = p; }
       }
-      return best;
-    };
+      corners[z.name] = best;
+    }
 
-    const tlPoints = edgePoints.filter(p => p.x < 0.55 && p.y < 0.55);
-    const trPoints = edgePoints.filter(p => p.x > 0.45 && p.y < 0.55);
-    const brPoints = edgePoints.filter(p => p.x > 0.45 && p.y > 0.45);
-    const blPoints = edgePoints.filter(p => p.x < 0.55 && p.y > 0.45);
-
-    // Score = geometric extremeness (weighted 80%) + gradient strength (weighted 20%)
-    const normGrad = (p) => p.grad / maxGrad;
-    const tl = findBest(tlPoints, p => -(p.x + p.y) * 0.8 + normGrad(p) * 0.2);
-    const tr = findBest(trPoints, p =>  (p.x - p.y) * 0.8 + normGrad(p) * 0.2);
-    const br = findBest(brPoints, p =>  (p.x + p.y) * 0.8 + normGrad(p) * 0.2);
-    const bl = findBest(blPoints, p => -(p.x - p.y) * 0.8 + normGrad(p) * 0.2);
-
+    const { tl, tr, br, bl } = corners;
     if (!tl || !tr || !br || !bl) return null;
 
-    // === Step 4: Sanity check — ensure quadrilateral is large enough ===
+    // === Step 6: Sanity check — quad must be reasonably large ===
     const quadW = Math.abs(tr.x - tl.x);
     const quadH = Math.abs(bl.y - tl.y);
-    if (quadW < 0.15 || quadH < 0.15) return null; // Too small — likely noise
+    if (quadW < 0.12 || quadH < 0.12) return null;
 
-    // === Step 5: Apply small outward safety padding ===
+    // === Step 7: Small outward safety padding ===
     const pad = (p, dx, dy) => ({
       x: Math.max(0.01, Math.min(0.99, p.x + dx)),
       y: Math.max(0.01, Math.min(0.99, p.y + dy))
     });
 
     return [
-      pad(tl, -0.012, -0.012),
-      pad(tr,  0.012, -0.012),
-      pad(br,  0.012,  0.012),
-      pad(bl, -0.012,  0.012)
+      pad(tl, -0.01, -0.01),
+      pad(tr,  0.01, -0.01),
+      pad(br,  0.01,  0.01),
+      pad(bl, -0.01,  0.01)
     ];
   } catch (err) {
     console.error("Auto corner snap failed:", err);
@@ -2137,6 +2174,28 @@ function setProgress(pct, label, detail) {
 // SERVICE WORKER PWA INTEGRATION
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js').catch(() => {});
+}
+
+// FORCE CLEAR CACHE & RELOAD
+async function forceClearCache() {
+  showToast("Membersihkan cache...", "info", '<svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>');
+  try {
+    // Unregister all service workers
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    // Delete all caches
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    setTimeout(() => {
+      window.location.reload(true);
+    }, 600);
+  } catch (e) {
+    window.location.reload(true);
+  }
 }
 </script>
 
